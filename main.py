@@ -23,7 +23,7 @@ class ButtonStrings:
 
 @dataclass
 class ResponseStrings:
-    hello_text: str = "Let's goooo!"
+    hello_text: str = "Use buttons to control WLED or send me a picture from which I will try to guess and det color"
     on_off: str = "LED is {}"
     done: str = "Done"
     current_mode: str = "Current mode is {}"
