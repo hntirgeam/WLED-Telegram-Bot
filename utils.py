@@ -35,7 +35,11 @@ def send_get_request(field1, field2=None):
 def turn_off_on():
     json_data = {"on": "t"}
     status = send_post_request(json_data)
-    return status
+    if status:
+        on = send_get_request("state", "on")
+        return "On" if on else "Off"
+    else:
+        return status
 
 
 def change_brightness(where: bool):
