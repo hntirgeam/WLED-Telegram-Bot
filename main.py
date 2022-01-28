@@ -23,7 +23,8 @@ class ButtonStrings:
 
 @dataclass
 class ResponseStrings:
-    hello_text = "Let's goooo!"
+    hello_text: str = "Let's goooo!"
+    on_off: str = "LED is {}"
     done: str = "Done"
     current_mode: str = "Current mode is {}"
     guesed_color: str = "Looks like the color is... \n\n{}"
@@ -47,36 +48,28 @@ def start(update: Update, context: CallbackContext) -> None:
 def message_handler(update: Update, context: CallbackContext):
     if ButtonStrings.on_off == update.message.text:
         res = utils.turn_off_on()
-        if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.done)
-        else:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
+        response_text = ResponseStrings.on_off.format(res) if res else ResponseStrings.error
+        context.bot.send_message(chat_id=update.effective_chat.id, text=response_text)
 
     if ButtonStrings.br_up == update.message.text:
         res = utils.change_brightness(True)
-        if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=res)
+        response_text = res if res else ResponseStrings.error
+        context.bot.send_message(chat_id=update.effective_chat.id, text=response_text)
 
     if ButtonStrings.br_down == update.message.text:
         res = utils.change_brightness(False)
-        if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=res)
-        else:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
+        response_text = res if res else ResponseStrings.error
+        context.bot.send_message(chat_id=update.effective_chat.id, text=response_text)
 
     if ButtonStrings.random_mode == update.message.text:
         res = utils.set_random_mode()
-        if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.current_mode.format(res))
-        else:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
+        response_text = ResponseStrings.current_mode.format(res) if res else ResponseStrings.error
+        context.bot.send_message(chat_id=update.effective_chat.id, text=response_text)
 
     if ButtonStrings.static_mode == update.message.text:
         res = utils.set_static_mode()
-        if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.current_mode.format(res))
-        else:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
+        response_text = ResponseStrings.current_mode.format(res) if res else ResponseStrings.error
+        context.bot.send_message(chat_id=update.effective_chat.id, text=response_text)
 
 
 def image_handler(update: Update, context: CallbackContext):
