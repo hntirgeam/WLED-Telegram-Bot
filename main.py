@@ -1,8 +1,9 @@
+import io
 import logging
 import os
 from dataclasses import dataclass
 
-from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
+from telegram import KeyboardButton, ParseMode, ReplyKeyboardMarkup, Update
 from telegram.ext import CallbackContext, CommandHandler, Filters, MessageHandler, Updater
 
 import utils
@@ -20,6 +21,15 @@ class ButtonStrings:
     static_mode: str = "Static mode"
 
 
+@dataclass
+class ResponseStrings:
+    hello_text = "Let's goooo!"
+    done: str = "Done"
+    current_mode: str = "Current mode is {}"
+    guesed_color: str = "Looks like the color is... \n\n{}"
+    error: str = "I dunno. Check... logs... or... is your WLED_URL correct..."
+
+
 def start(update: Update, context: CallbackContext) -> None:
     buttons = [
         [KeyboardButton(ButtonStrings.on_off)],
@@ -29,16 +39,18 @@ def start(update: Update, context: CallbackContext) -> None:
     ]
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Let's gooooo!",
+        text=ResponseStrings.hello_text,
         reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
     )
 
 
-def messageHandler(update: Update, context: CallbackContext):
+def message_handler(update: Update, context: CallbackContext):
     if ButtonStrings.on_off == update.message.text:
         res = utils.turn_off_on()
         if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="Done")
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.done)
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
 
     if ButtonStrings.br_up == update.message.text:
         res = utils.change_brightness(True)
@@ -49,22 +61,48 @@ def messageHandler(update: Update, context: CallbackContext):
         res = utils.change_brightness(False)
         if res:
             context.bot.send_message(chat_id=update.effective_chat.id, text=res)
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
 
     if ButtonStrings.random_mode == update.message.text:
-        res = utils.random_mode()
+        res = utils.set_random_mode()
         if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=f'Current mode is "{res}"')
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.current_mode.format(res))
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
 
     if ButtonStrings.static_mode == update.message.text:
-        res = utils.static_mode()
+        res = utils.set_static_mode()
         if res:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=f'Current mode is "{res}"')
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.current_mode.format(res))
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
+
+
+def image_handler(update: Update, context: CallbackContext):
+    file = update.message.photo[-1].file_id
+
+    obj = context.bot.get_file(file)
+    image = io.BytesIO()
+    image = obj.download(out=image)
+
+    color = utils.get_dominant_color_from_image(image)
+    res = utils.set_dominant_color(color)
+    if res:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=ResponseStrings.guesed_color.format(res),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=ResponseStrings.error)
 
 
 updater = Updater(os.getenv("BOT_TOKEN"))
 dispatcher = updater.dispatcher
 
 dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(MessageHandler(Filters.text, messageHandler))
+dispatcher.add_handler(MessageHandler(Filters.text, message_handler))
+dispatcher.add_handler(MessageHandler(Filters.photo, image_handler))
 
 updater.start_polling()
